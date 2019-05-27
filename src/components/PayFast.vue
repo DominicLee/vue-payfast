@@ -88,7 +88,7 @@
         // @ts-ignore
         Vue.loadScript('/simpleCart.min.js').then(() => {
           // @ts-ignore
-          this._simpleCart = simpleCart({
+          simpleCart({
             cartColumns: [
               {attr: "name", label: "Name"},
               {view: "currency", attr: "price", label: "Price"},
@@ -102,7 +102,6 @@
             ready: () => {
               this.emitEvent('ready', this._simpleCart);
               simpleCart.bind('update', this.scUpdate);
-              this.simpleCartReady();
             },
             beforeAdd: this.beforeAdd,
             afterAdd: this.afterAdd
