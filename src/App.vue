@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <PayFast :checkout="checkoutData" @ready="cartReady" :before-add="beforeAdd" :after-add="afterAdd"></PayFast>
+    <PayFast :checkout="checkoutData" @ready="cartReady" :before-add="beforeAdd" :after-add="afterAdd" shelf-columns="5"></PayFast>
   </div>
 </template>
 <script>
@@ -26,12 +26,11 @@
     }
 
     beforeAdd(_item) {
-      console.log(_item.get('size'));
-      _item.set('price', 49.99);
+      //_item.set('price', 49.99);
     }
 
     afterAdd(_item) {
-      console.log(_item.get('price'))
+      //console.log(_item.get('price'))
     }
 
   }

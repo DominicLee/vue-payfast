@@ -1,14 +1,15 @@
 <template>
-  <div class="vsc-wrapper">
-    <v-container grid-list>
-      <v-layout class="vsc-shelf">
-        <v-flex v-for="product in dummyProducts" :key="product.id">
+  <div class="vsc-wrapper" :style="{'--columnCount': shelfColumns}">
+    <v-container fluid grid-list>
+      <v-layout wrap class="vsc-shelf" v-if="simpleCartReady" >
+        <v-flex shrink v-for="product in dummyProducts" :key="product.id" class="vsc-shelf-item">
           <v-card>
-            <v-card-media height="200px" :src="product.image"></v-card-media>
+            <v-img height="50%" :src="product.image"></v-img>
             <v-card-title primary-title>
               <h3 v-html="product.name"></h3>
             </v-card-title>
-            <v-card-text v-html="product.description"></v-card-text>
+            <v-card-text align="left" v-html="convertCurrency(product.price)"></v-card-text>
+            <v-card-text align="left" v-html="product.description"></v-card-text>
             <v-card-actions>
               <v-btn flat color="orange">More Info</v-btn>
               <v-btn flat color="orange" @click="scAddToCart(product)">Add to Cart</v-btn>
@@ -17,21 +18,17 @@
         </v-flex>
       </v-layout>
     </v-container>
-
-    <div class="vsc-item" v-for="item in vscItems">
-      {{item.get('name')}}
+    <div class="vsc-item" v-for="item in vscItems" v-if="simpleCartReady" :key="item.get('id')">
+      <div>{{item.get('name')}}</div>
+      <div v-html="convertCurrency(item.get('price'))"></div>
+      <v-btn @click="scDecrementItem(item.get('id'))">&lt;</v-btn>
+      <div>{{item.get('quantity')}}</div>
+      <v-btn @click="scIncrementItem(item.get('id'))">&gt;</v-btn>
+      <div v-html="convertCurrency(item.get('total'))"></div>
+      <v-btn @click="scRemoveItem(item.get('id'))">X</v-btn>
     </div>
-    <div class="shoppingcart-container">
-      <div style="width:700px;" class="simpleCart_items"></div>
-      <div id="cartTotal"><strong>Total: </strong><span class="simpleCart_total"></span></div>
-      <div class="simpleCart_shelfItem">
-        <h5 class="item_name">DUMMY PRODUCT 1</h5>
-        <img src="" alt="DUMMY PRODUCT 1" title="DUMMY PRODUCT 1" class="item_image"/>
-        <span class="item_price"><strong>R10.01</strong></span> <a href="#" class="item_add">Add to Cart</a>
-        <p class="item_Description">product description product description<br/>product description product description
-        </p>
-      </div>
-    </div>
+    <div class="vsc-total">TOTAL: <span v-html="simpleCartTotal"></span></div>
+    <div style="width:700px;" class="simpleCart_items"></div>
   </div>
 </template>
 <script lang="ts">
@@ -50,39 +47,55 @@
     @Prop() shipping!: any;
     @Prop() currency!: any;
     @Prop() urls!: any;
+    @Prop() shelfColumns!: number;
 
     @Prop() beforeAdd!: Function;
     @Prop() afterAdd!: Function;
 
+    // TODO: Add responsivity
 
     // VARIABLES
 
-    _simpleCart: any;
     vscItems: any[] = [];
+    simpleCartReady:boolean = false;
+    simpleCartTotal:number = 0;
 
-    dummyProducts:any[] = [
+    dummyProducts: any[] = [
       {
         name: 'Tomato Sauce',
         price: 15.99,
         description: 'Tomato sauce in a jar',
         image: 'tomato.jpg',
         id: '012'
-      },{
+      }, {
         name: 'Sunglasses',
         price: 215.99,
         description: 'Sunglasses for your face',
         image: 'sunglasses.jpg',
         id: '123'
-      },{
+      }, {
         name: 'Manicure',
         price: 245.99,
         description: 'Stuff for your nails',
         image: 'manicure.jpg',
         id: '234'
+      }, {
+        name: 'Weave',
+        price: 1115.99,
+        description: 'More hair for your hair',
+        image: 'hair.jpg',
+        id: '345'
+      }, {
+        name: 'Shampoo',
+        price: 46.99,
+        description: 'Shampoo for your hair',
+        image: 'shampoo.jpg',
+        id: '456'
       }
     ];
 
     created() {
+      // TODO: Promisify
       // @ts-ignore
       Vue.loadScript('/jquery-1.7.2.min.js').then(() => {
         // @ts-ignore
@@ -100,55 +113,85 @@
             ],
             checkout: this.checkout,
             ready: () => {
-              this.emitEvent('ready', this._simpleCart);
+              this.simpleCartReady = true;
+              this.emitEvent('ready', simpleCart);
               simpleCart.bind('update', this.scUpdate);
+              simpleCart.update();
             },
             beforeAdd: this.beforeAdd,
             afterAdd: this.afterAdd
           });
-
         })
       });
-
     }
 
     mounted() {
 
     }
 
-    scAddToCart(_item:any):void {
-      simpleCart.add(_item);
+    scAddToCart(_item: any): void {
+      simpleCart.add({name: _item.name, price: _item.price, quantity: 1});
+    }
+
+    scIncrementItem(_itemId: string): void {
+      const foundItem:any = simpleCart.find({id: _itemId})[0];
+      foundItem.increment();
+      simpleCart.update();
+    }
+
+    scDecrementItem(_itemId:any): void {
+      const foundItem:any = simpleCart.find({id: _itemId})[0];
+      foundItem.decrement();
+      simpleCart.update();
+    }
+
+    scRemoveItem(_itemId:any):void {
+      const foundItem:any = simpleCart.find({id: _itemId})[0];
+      foundItem.remove();
+      simpleCart.update();
     }
 
     scUpdate(): void {
+      this.simpleCartTotal = simpleCart.toCurrency(simpleCart.total());
       this.vscItems = [];
-      simpleCart.each((_item:any) => {
+      simpleCart.each((_item: any) => {
         this.vscItems.push(_item)
       });
     }
 
-    simpleCartReady(): void {
-      simpleCart.add({
-        name: "Cool T-Shirt",
-        price: 45.99,
-        size: "Small",
-        quantity: 3
-      });
-    }
-
     emitEvent(_event: string, _meta: any) {
-      console.log('emitting ' + _event);
       this.$emit(_event, _meta);
     }
 
+    convertCurrency(_cost:number):string {
+      return simpleCart.toCurrency(_cost);
+    }
 
   }
 </script>
 <style lang="less">
+  .vsc {
+
+    &-wrapper {
+
+    }
+
+    &-shelf {
+
+      &-item {
+        width: calc(100% / var(--columnCount));
+        max-width: calc(100% / var(--columnCount));
+      }
+
+    }
+
+  }
+
+
   .vsc-item {
     height: 100px;
-    width: 100px;
-    background: red;
-    border: 1px solid orange;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
   }
 </style>
