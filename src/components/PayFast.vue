@@ -172,6 +172,7 @@
 <style lang="less">
   .vsc {
 
+
     &-wrapper {
 
     }
@@ -190,6 +191,8 @@
 
   .vsc-item {
     height: 100px;
+
+    font-size: 2rem;
     display: flex;
     justify-content: space-evenly;
     align-items: center;
