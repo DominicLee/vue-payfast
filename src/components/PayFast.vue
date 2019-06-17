@@ -1,7 +1,7 @@
 <template>
   <div class="vsc-wrapper" :style="{'--columnCount': shelfColumns}">
     <v-container fluid grid-list>
-      <v-layout wrap class="vsc-shelf" v-if="simpleCartReady" >
+      <v-layout wrap class="vsc-shelf" v-if="simpleCartReady">
         <v-flex shrink v-for="product in dummyProducts" :key="product.id" class="vsc-shelf-item">
           <v-card>
             <v-img height="50%" :src="product.image"></v-img>
@@ -28,7 +28,9 @@
       <v-btn @click="scRemoveItem(item.get('id'))">X</v-btn>
     </div>
     <div class="vsc-total">TOTAL: <span v-html="simpleCartTotal"></span></div>
-    <div style="width:700px;" class="simpleCart_items"></div>
+    <div class="checkout-button">
+      <v-btn @click="scCheckout">Checkout</v-btn>
+    </div>
   </div>
 </template>
 <script lang="ts">
@@ -57,8 +59,8 @@
     // VARIABLES
 
     vscItems: any[] = [];
-    simpleCartReady:boolean = false;
-    simpleCartTotal:number = 0;
+    simpleCartReady: boolean = false;
+    simpleCartTotal: number = 0;
 
     dummyProducts: any[] = [
       {
@@ -118,9 +120,16 @@
               simpleCart.bind('update', this.scUpdate);
               simpleCart.update();
             },
+
             beforeAdd: this.beforeAdd,
-            afterAdd: this.afterAdd
+            afterAdd: this.afterAdd,
+            beforeCheckout: this.scBeforeCheckout
           });
+          simpleCart.currency({
+            code: "ZAR",
+            symbol: "R",
+            name: "South African Rand"
+          })
         })
       });
     }
@@ -134,21 +143,28 @@
     }
 
     scIncrementItem(_itemId: string): void {
-      const foundItem:any = simpleCart.find({id: _itemId})[0];
+      const foundItem: any = simpleCart.find({id: _itemId})[0];
       foundItem.increment();
       simpleCart.update();
     }
 
-    scDecrementItem(_itemId:any): void {
-      const foundItem:any = simpleCart.find({id: _itemId})[0];
+    scDecrementItem(_itemId: any): void {
+      const foundItem: any = simpleCart.find({id: _itemId})[0];
       foundItem.decrement();
       simpleCart.update();
     }
 
-    scRemoveItem(_itemId:any):void {
-      const foundItem:any = simpleCart.find({id: _itemId})[0];
+    scRemoveItem(_itemId: any): void {
+      const foundItem: any = simpleCart.find({id: _itemId})[0];
       foundItem.remove();
       simpleCart.update();
+    }
+
+    scBeforeCheckout(_data: any) {
+      _data.merchant_key = this.merchantKey;
+      _data.merchant_id = this.merchantId;
+      _data.amount = simpleCart.total();
+      _data.item_name = 'Doms amazing checkout'
     }
 
     scUpdate(): void {
@@ -159,11 +175,15 @@
       });
     }
 
+    scCheckout(): void {
+      simpleCart.checkout();
+    }
+
     emitEvent(_event: string, _meta: any) {
       this.$emit(_event, _meta);
     }
 
-    convertCurrency(_cost:number):string {
+    convertCurrency(_cost: number): string {
       return simpleCart.toCurrency(_cost);
     }
 
